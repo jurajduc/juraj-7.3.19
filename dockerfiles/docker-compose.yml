@@ -1,0 +1,46 @@
+version: '2'
+
+services:
+  db:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile-db
+    env_file:
+      - db.env
+    ports:
+      - 5432:5432
+
+  api:
+    image: nginx
+    restart: always
+    ports:
+      - "5002:80"
+    volumes:
+      - ${SRC_ROOT}:/app
+      - ./nginx/sites/${ENV}.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/${ENV}.default.conf:/etc/nginx/${ENV}.default.conf
+
+    links:
+      - php
+
+  php:
+    extends:
+      file: base-php/base-php.yml
+      service: base-php
+    restart: always
+    working_dir: /app
+    volumes:
+      - ${SRC_ROOT}:/app
+    # command: ./yii migrate
+    links:
+      - db
+
+  react:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile-node
+    volumes:
+      # - ../FE/build:/usr/share/nginx/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+       - 5001:80
